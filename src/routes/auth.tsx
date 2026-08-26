@@ -1,11 +1,17 @@
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  error: z.enum(["perfil_invalido"]).optional(),
+});
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: authSearchSchema,
   head: () => ({
     meta: [
       { title: "Entrar - Demanda" },
@@ -16,7 +22,8 @@ export const Route = createFileRoute("/auth")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
+    if (search.error === "perfil_invalido") return;
     const { data } = await supabase.auth.getUser();
     if (data.user) {
       throw redirect({ to: "/" });
@@ -26,10 +33,20 @@ export const Route = createFileRoute("/auth")({
 });
 
 function LoginPage() {
+  const navigate = useNavigate({ from: "/auth" });
+  const search = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (search.error === "perfil_invalido") {
+      toast.error("Perfil inválido", {
+        description: "Sua conta não possui um perfil válido no sistema. Entre em contato com o administrador.",
+      });
+    }
+  }, [search.error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,17 +57,45 @@ function LoginPage() {
       password,
     });
 
-    setIsLoading(false);
-
     if (error) {
       toast.error("Erro ao entrar", {
         description: error.message,
       });
+      setIsLoading(false);
+      return;
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      toast.error("Erro ao recuperar sessão", {
+        description: "Não foi possível identificar o usuário. Tente novamente.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("tipo")
+      .eq("id", userData.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut();
+      toast.error("Perfil não encontrado", {
+        description: "Entre em contato com o administrador do sistema.",
+      });
+      setIsLoading(false);
       return;
     }
 
     toast.success("Login realizado com sucesso!");
-    window.location.href = "/";
+
+    if (profile.tipo === "tecnico") {
+      navigate({ to: "/tecnico" });
+    } else {
+      navigate({ to: "/solicitante" });
+    }
   }
 
   return (
