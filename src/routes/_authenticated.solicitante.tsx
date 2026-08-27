@@ -1,13 +1,15 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { SignOutButton } from "@/components/SignOutButton";
+import { NovaSolicitacaoForm } from "@/components/NovaSolicitacaoForm";
 
 export const Route = createFileRoute("/_authenticated/solicitante")({
   ssr: false,
   head: () => ({
     meta: [
       { title: "Painel do Solicitante - Demanda" },
-      { name: "description", content: "Painel do solicitante no sistema Demanda." },
+      { name: "description", content: "Abra novas solicitações de suporte de TI no sistema Demanda." },
       { property: "og:title", content: "Painel do Solicitante - Demanda" },
-      { property: "og:description", content: "Painel do solicitante no sistema Demanda." },
+      { property: "og:description", content: "Abra novas solicitações de suporte de TI no sistema Demanda." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -20,19 +22,21 @@ export const Route = createFileRoute("/_authenticated/solicitante")({
   component: SolicitantePage,
 });
 
-import { SignOutButton } from "@/components/SignOutButton";
-
 function SolicitantePage() {
+  const { profile } = Route.useRouteContext();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
-        <h1 className="text-xl font-bold text-foreground">Painel do Solicitante</h1>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Painel do Solicitante</h1>
+          <p className="text-sm text-muted-foreground">{profile.nome}</p>
+        </div>
         <SignOutButton />
       </header>
-      <main className="flex flex-1 items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <h2 className="text-2xl font-bold text-foreground">Bem-vindo à área do solicitante</h2>
-          <p className="mt-2 text-muted-foreground">Aqui ficará o painel de solicitações em breve.</p>
+      <main className="flex-1 px-4 py-6 sm:px-6">
+        <div className="mx-auto w-full max-w-2xl">
+          <NovaSolicitacaoForm solicitanteId={profile.id} />
         </div>
       </main>
     </div>
