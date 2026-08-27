@@ -66,11 +66,6 @@ function LoginPage() {
     }
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    console.log("[auth.tsx] getUser result:", {
-      hasUser: !!userData?.user,
-      userId: userData?.user?.id ?? null,
-      error: userError?.message ?? null,
-    });
     if (userError || !userData.user) {
       toast.error("Erro ao recuperar sessão", {
         description: "Não foi possível identificar o usuário. Tente novamente.",
@@ -84,15 +79,6 @@ function LoginPage() {
       .select("tipo")
       .eq("id", userData.user.id)
       .single();
-
-    console.log("[auth.tsx] profiles query result:", {
-      userId: userData.user.id,
-      hasRecord: !!profile,
-      record: profile ?? null,
-      error: profileError
-        ? { message: profileError.message, code: profileError.code, details: profileError.details, hint: profileError.hint }
-        : null,
-    });
 
     if (profileError || !profile) {
       await supabase.auth.signOut();
